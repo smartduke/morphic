@@ -12,7 +12,6 @@ import { EmptyScreen } from './empty-screen'
 import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
-import { IconLogo } from './ui/icons'
 
 interface ChatPanelProps {
   input: string
@@ -45,7 +44,27 @@ export function ChatPanel({
   showScrollToBottomButton,
   scrollContainerRef
 }: ChatPanelProps) {
-  const [showEmptyScreen, setShowEmptyScreen] = useState(false)
+  // Welcome messages that rotate randomly on page load
+  const welcomeMessages = [
+    "Stay curious. The latest news is just a question away 🗞️",
+    "What's on your mind? The world's talking. 🌍",
+    "Explore the headlines. Ask me anything. 🔎",
+    "Trending now. Ask to dive deeper. ⚡",
+    "News moves fast. Ask me to keep up. 🧠"
+  ];
+  
+  // Start with a default message to avoid hydration errors
+  const [welcomeMessage, setWelcomeMessage] = useState(welcomeMessages[0]);
+  
+  // Set random welcome message on client side only
+  useEffect(() => {
+    // Only run on the client after hydration
+    const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
+    setWelcomeMessage(welcomeMessages[randomIndex]);
+  }, []);
+  
+  // News tabs are always visible now, no need for this state
+  // const [showEmptyScreen, setShowEmptyScreen] = useState(true)
   const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const isFirstRender = useRef(true)
@@ -116,13 +135,14 @@ export function ChatPanel({
     >
       {messages.length === 0 && (
         <div className="mb-10 flex flex-col items-center gap-4">
-          <IconLogo className="size-12 text-muted-foreground" />
-          <p className="text-center text-3xl font-semibold">
-            How can I help you today?
+          {/* <IconLogo className="size-12 text-muted-foreground" /> */}
+          <p className="text-center text-2xl font-medium leading-relaxed max-w-xl">
+            {welcomeMessage}
           </p>
         </div>
       )}
       <form
+        name="chat-form"
         onSubmit={handleSubmit}
         className={cn('max-w-3xl w-full mx-auto relative')}
       >
@@ -156,7 +176,8 @@ export function ChatPanel({
             className="resize-none w-full min-h-12 bg-transparent border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
               handleInputChange(e)
-              setShowEmptyScreen(e.target.value.length === 0)
+              // Always keep EmptyScreen visible
+              // setShowEmptyScreen(e.target.value.length === 0)
             }}
             onKeyDown={e => {
               if (
@@ -174,8 +195,9 @@ export function ChatPanel({
                 textarea.form?.requestSubmit()
               }
             }}
-            onFocus={() => setShowEmptyScreen(true)}
-            onBlur={() => setShowEmptyScreen(false)}
+            // Always keep EmptyScreen visible
+            // onFocus={() => setShowEmptyScreen(true)}
+            // onBlur={() => setShowEmptyScreen(false)}
           />
 
           {/* Bottom menu area */}
@@ -215,14 +237,23 @@ export function ChatPanel({
         </div>
 
         {messages.length === 0 && (
-          <EmptyScreen
-            submitMessage={message => {
-              handleInputChange({
-                target: { value: message }
-              } as React.ChangeEvent<HTMLTextAreaElement>)
-            }}
-            className={cn(showEmptyScreen ? 'visible' : 'invisible')}
-          />
+          <div className="mt-4">
+            <EmptyScreen
+              submitMessage={message => {
+                // Set the input value
+                handleInputChange({
+                  target: { value: message }
+                } as React.ChangeEvent<HTMLTextAreaElement>)
+                
+                // Submit the form programmatically
+                setTimeout(() => {
+                  const form = document.querySelector('form[name="chat-form"]') as HTMLFormElement
+                  if (form) form.requestSubmit()
+                }, 100)
+              }}
+              className="visible"
+            />
+          </div>
         )}
       </form>
     </div>
